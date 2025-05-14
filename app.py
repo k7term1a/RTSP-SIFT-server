@@ -53,4 +53,4 @@ if __name__ == "__main__":
     if not os.path.exists(PATTERN_PATH):
         # 預設 pattern
         cv2.imwrite(PATTERN_PATH, 255 * np.ones((100, 100, 3), dtype=np.uint8))
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=8080)
