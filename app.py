@@ -1,0 +1,55 @@
+from flask import Flask, render_template, request, redirect, url_for, send_file
+import os
+import cv2
+import base64
+from multiprocessing import Process, Queue, Value, Manager
+from rtsp_worker import rtsp_process
+
+app = Flask(__name__)
+UPLOAD_FOLDER = "static"
+PATTERN_PATH = os.path.join(UPLOAD_FOLDER, "pattern.png")
+
+# 多處共享影像緩衝區（共享圖片）
+manager = Manager()
+shared_images = manager.dict()  # {'original': ..., 'processed': ...}
+
+# 啟動背景處理程序
+frame_queue = Queue(maxsize=5)
+p = Process(target=rtsp_process, args=(frame_queue, shared_images, PATTERN_PATH))
+p.daemon = True
+p.start()
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    return render_template("index.html")
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    if 'file' not in request.files:
+        return redirect(request.url)
+    file = request.files['file']
+    if file.filename != "":
+        file.save(PATTERN_PATH)
+    return redirect(url_for('index'))
+
+@app.route("/image/<img_type>")
+def image(img_type):
+    # 從共享記憶體取出
+    img = shared_images.get(img_type)
+    if img is None:
+        return "", 404
+    # 轉為 base64
+    _, buffer = cv2.imencode('.jpg', img)
+    b64 = base64.b64encode(buffer).decode('utf-8')
+    return f"data:image/jpeg;base64,{b64}"
+
+@app.route("/pattern")
+def pattern():
+    return send_file(PATTERN_PATH, mimetype='image/png')
+
+if __name__ == "__main__":
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    if not os.path.exists(PATTERN_PATH):
+        # 預設 pattern
+        cv2.imwrite(PATTERN_PATH, 255 * np.ones((100, 100, 3), dtype=np.uint8))
+    app.run(debug=True)
