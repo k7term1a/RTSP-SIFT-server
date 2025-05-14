@@ -2,39 +2,48 @@ from flask import Flask, render_template, request, redirect, url_for, send_file,
 import os
 import cv2
 import numpy as np
-from multiprocessing import Process, Queue, Value, Manager
-from rtsp_worker import rtsp_process
+from multiprocessing import Process, Manager
+from rtsp_reader import rtsp_reader_process
+from sift_processor import sift_process
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "static"
 PATTERN_PATH = os.path.join(UPLOAD_FOLDER, "pattern.png")
 
-# 多處共享影像緩衝區（共享圖片）
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# 如果沒有 pattern.png，就產生一張白圖
+if not os.path.exists(PATTERN_PATH):
+    blank = 255 * np.ones((100, 100, 3), dtype=np.uint8)
+    cv2.imwrite(PATTERN_PATH, blank)
+
+# 多處理共享記憶體
 manager = Manager()
-shared_images = manager.dict()  # {'original': ..., 'processed': ...}
+shared_images = manager.dict()
 
-# 啟動背景處理程序
-frame_queue = Queue(maxsize=5)
-p = Process(target=rtsp_process, args=(frame_queue, shared_images, PATTERN_PATH))
-p.daemon = True
-p.start()
+# 啟動兩個獨立 Process：RTSP 擷取 與 SIFT 處理
+p1 = Process(target=rtsp_reader_process, args=(shared_images,))
+p1.daemon = True
+p1.start()
 
+p2 = Process(target=sift_process, args=(shared_images, PATTERN_PATH))
+p2.daemon = True
+p2.start()
+
+# 動態影像串流產生器
 def generate_stream(img_type):
     while True:
         frame = shared_images.get(img_type)
         if frame is None:
             continue
-
-        # 將 frame 編碼成 JPEG
         ret, buffer = cv2.imencode('.jpg', frame)
         if not ret:
             continue
-
-        # 將 JPEG 回傳給瀏覽器
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-    
-@app.route("/", methods=["GET", "POST"])
+
+# 路由設定
+@app.route("/")
 def index():
     return render_template("index.html")
 
@@ -43,7 +52,7 @@ def upload():
     if 'file' not in request.files:
         return redirect(request.url)
     file = request.files['file']
-    if file.filename != "":
+    if file and file.filename != "":
         file.save(PATTERN_PATH)
     return redirect(url_for('index'))
 
@@ -57,8 +66,4 @@ def pattern():
     return send_file(PATTERN_PATH, mimetype='image/png')
 
 if __name__ == "__main__":
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    if not os.path.exists(PATTERN_PATH):
-        # 預設 pattern
-        cv2.imwrite(PATTERN_PATH, 255 * np.ones((100, 100, 3), dtype=np.uint8))
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, debug=True)
