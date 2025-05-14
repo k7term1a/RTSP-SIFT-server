@@ -4,8 +4,8 @@
     <title>SIFT RTSP 比對</title>
     <script>
         function reloadImages() {
-            document.getElementById("original").src = "/image/original?" + new Date().getTime();
-            document.getElementById("processed").src = "/image/processed?" + new Date().getTime();
+            document.getElementById("original").src = "/stream/original?" + new Date().getTime();
+            document.getElementById("processed").src = "/stream/processed?" + new Date().getTime();
             document.getElementById("pattern").src = "/pattern?" + new Date().getTime();
         }
         setInterval(reloadImages, 1000);
@@ -23,9 +23,9 @@
     <img id="pattern" src="/pattern" width="200" alt="Pattern image"><br>
 
     <h3>原始影像</h3>
-    <img id="original" src="/image/original" width="480" alt="original iamge"><br>
+    <img id="original" src="/stream/original" width="480" alt="original iamge"><br>
 
     <h3>比對後影像</h3>
-    <img id="processed" src="/image/processed" width="480" alt="processed image"><br>
+    <img id="processed" src="/stream/processed" width="480" alt="processed image"><br>
 </body>
 </html>

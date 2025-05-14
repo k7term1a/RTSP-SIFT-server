@@ -12,7 +12,7 @@ def match_sift_with_boxes(pattern_img, frame_img):
     kp1, des1 = sift.detectAndCompute(gray1, None)
     kp2, des2 = sift.detectAndCompute(gray2, None)
 
-    if des1 is None or des2 is None:
+    if des1 is None or des2 is None or len(des2) < 2:
         return frame_img, False, 0
 
     matches = bf.knnMatch(des1, des2, k=2)

@@ -33,37 +33,6 @@ def generate_stream(img_type):
         # 將 JPEG 回傳給瀏覽器
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-
-RTSP_URL = "rtsp://<username>:<password>@<ip>:<port>/<path>"  # 改成你的攝影機串流網址
-
-def generate_rtsp_stream():
-    cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
-
-    if not cap.isOpened():
-        print("❌ 無法連線到 RTSP 串流")
-        return
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("⚠️ RTSP 串流中斷，重連中...")
-            cap.release()
-            cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
-            continue
-
-        ret, buffer = cv2.imencode('.jpg', frame)
-        if not ret:
-            continue
-
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-
-    cap.release()
-
-@app.route('/stream_rtsp')
-def stream_rtsp():
-    return Response(generate_rtsp_stream(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
     
 @app.route("/", methods=["GET", "POST"])
 def index():
