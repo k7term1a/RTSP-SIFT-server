@@ -1,7 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_file, Response
 import os
 import cv2
-import base64
 import numpy as np
 from multiprocessing import Process, Queue, Value, Manager
 from rtsp_worker import rtsp_process
@@ -20,6 +19,21 @@ p = Process(target=rtsp_process, args=(frame_queue, shared_images, PATTERN_PATH)
 p.daemon = True
 p.start()
 
+def generate_stream(img_type):
+    while True:
+        frame = shared_images.get(img_type)
+        if frame is None:
+            continue
+
+        # 將 frame 編碼成 JPEG
+        ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret:
+            continue
+
+        # 將 JPEG 回傳給瀏覽器
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     return render_template("index.html")
@@ -33,16 +47,10 @@ def upload():
         file.save(PATTERN_PATH)
     return redirect(url_for('index'))
 
-@app.route("/image/<img_type>")
-def image(img_type):
-    # 從共享記憶體取出
-    img = shared_images.get(img_type)
-    if img is None:
-        return "", 404
-    # 轉為 base64
-    _, buffer = cv2.imencode('.jpg', img)
-    b64 = base64.b64encode(buffer).decode('utf-8')
-    return f"data:image/jpeg;base64,{b64}"
+@app.route('/stream/<img_type>')
+def stream(img_type):
+    return Response(generate_stream(img_type),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route("/pattern")
 def pattern():
