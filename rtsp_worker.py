@@ -3,8 +3,10 @@ import time
 from sift_matcher import match_sift_with_boxes
 
 def rtsp_process(queue, shared_images, pattern_path):
-    rtsp_url = "rtsp://YOUR_CAMERA_ADDRESS"
-    cap = cv2.VideoCapture(rtsp_url)
+    # rtsp_url = "rtsp://YOUR_CAMERA_ADDRESS"
+    # cap = cv2.VideoCapture(rtsp_url)
+    camera_device = "/dev/video0"
+    cap = cv2.VideoCapture(camera_device, cv2.CAP_V4L2)
 
     if not cap.isOpened():
         print("❌ 無法開啟 RTSP 串流")
@@ -17,7 +19,7 @@ def rtsp_process(queue, shared_images, pattern_path):
         if not ret:
             print("⚠️ 影像抓取失敗，重試中...")
             time.sleep(1)
-            cap = cv2.VideoCapture(rtsp_url)
+            cap = cv2.VideoCapture(camera_device, cv2.CAP_V4L2)
             continue
 
         shared_images["original"] = frame.copy()
