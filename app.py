@@ -2,14 +2,13 @@ from flask import Flask, render_template, request, redirect, url_for, send_file,
 import os
 import cv2
 import numpy as np
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager, Queue
 from rtsp_reader import rtsp_reader_process
-from sift_processor import sift_process
+from sift_processor import sift_process_worker
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "static"
 PATTERN_PATH = os.path.join(UPLOAD_FOLDER, "pattern.png")
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # 如果沒有 pattern.png，就產生一張白圖
@@ -17,20 +16,24 @@ if not os.path.exists(PATTERN_PATH):
     blank = 255 * np.ones((100, 100, 3), dtype=np.uint8)
     cv2.imwrite(PATTERN_PATH, blank)
 
-# 多處理共享記憶體
+# 建立共享記憶體與佇列
 manager = Manager()
 shared_images = manager.dict()
+image_queue = Queue(maxsize=10)
 
-# 啟動兩個獨立 Process：RTSP 擷取 與 SIFT 處理
-p1 = Process(target=rtsp_reader_process, args=(shared_images,))
-p1.daemon = True
-p1.start()
+# 啟動 RTSP 擷取程序
+p_rtsp = Process(target=rtsp_reader_process, args=(shared_images, image_queue))
+p_rtsp.daemon = True
+p_rtsp.start()
 
-p2 = Process(target=sift_process, args=(shared_images, PATTERN_PATH))
-p2.daemon = True
-p2.start()
+# 啟動多個 SIFT Worker（可調整數量）
+NUM_WORKERS = 4
+for _ in range(NUM_WORKERS):
+    p = Process(target=sift_process_worker, args=(image_queue, shared_images, PATTERN_PATH))
+    p.daemon = True
+    p.start()
 
-# 動態影像串流產生器
+# 串流影像產生器
 def generate_stream(img_type):
     while True:
         frame = shared_images.get(img_type)
@@ -56,7 +59,7 @@ def upload():
         file.save(PATTERN_PATH)
     return redirect(url_for('index'))
 
-@app.route('/stream/<img_type>')
+@app.route("/stream/<img_type>")
 def stream(img_type):
     return Response(generate_stream(img_type),
                     mimetype='multipart/x-mixed-replace; boundary=frame')

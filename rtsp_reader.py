@@ -1,7 +1,7 @@
 import cv2
 import time
 
-def rtsp_reader_process(shared_images):
+def rtsp_reader_process(shared_images, image_queue):
     cap = cv2.VideoCapture(10)
 
     if not cap.isOpened():
@@ -17,4 +17,11 @@ def rtsp_reader_process(shared_images):
             continue
 
         shared_images['original'] = frame
-        time.sleep(0.01)
+
+        # 推入處理佇列（不阻塞）
+        try:
+            image_queue.put_nowait(frame)
+        except:
+            pass  # queue 滿了就丟掉
+
+        time.sleep(0.01)  # 控制 RTSP 取樣頻率

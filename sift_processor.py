@@ -2,16 +2,20 @@ import time
 import cv2
 from sift_matcher import match_sift_with_boxes
 
-def sift_process(shared_images, pattern_path):
+def sift_process_worker(image_queue, shared_images, pattern_path):
+    sift = cv2.SIFT_create()
+
     while True:
-        pattern_img = cv2.imread(pattern_path, cv2.IMREAD_GRAYSCALE)
-        if pattern_img is None:
+        # 每次都重新載入 pattern，未來可優化
+        pattern = cv2.imread(pattern_path, cv2.IMREAD_GRAYSCALE)
+        if pattern is None:
             time.sleep(0.5)
             continue
 
-        if 'original' in shared_images:
-            frame = shared_images['original']
-            processed = match_sift_with_boxes(pattern_img, frame)
-            shared_images['processed'] = processed
+        try:
+            frame = image_queue.get(timeout=1)
+        except:
+            continue
 
-        time.sleep(0.05)
+        processed = match_sift_with_boxes(pattern, frame)
+        shared_images['processed'] = processed

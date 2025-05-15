@@ -14,10 +14,7 @@ def match_sift_with_boxes(pattern_gray, frame_bgr):
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(des1, des2, k=2)
 
-    good = []
-    for m, n in matches:
-        if m.distance < 0.75 * n.distance:
-            good.append(m)
+    good = [m for m, n in matches if m.distance < 0.75 * n.distance]
 
     if len(good) > 10:
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
@@ -34,4 +31,3 @@ def match_sift_with_boxes(pattern_gray, frame_bgr):
             return result
 
     return frame_bgr
-
