@@ -10,7 +10,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "static"
 PATTERN_PATH = os.path.join(UPLOAD_FOLDER, "pattern.png")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-draw_keypoints_flag = False  # 全域變數
+draw_keypoints_flag = Manager.Value('b', False)  # 'b' 表示 boolean
 
 # 如果沒有 pattern.png，就產生一張白圖
 if not os.path.exists(PATTERN_PATH):
@@ -73,7 +73,7 @@ def pattern():
 def toggle_keypoints():
     global draw_keypoints_flag
     data = request.get_json()
-    draw_keypoints_flag = data.get("show", False)
+    draw_keypoints_flag.value = data.get("show", False)
     return {"status": "ok", "draw_keypoints": draw_keypoints_flag}
 
 if __name__ == "__main__":
