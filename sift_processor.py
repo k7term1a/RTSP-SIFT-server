@@ -2,7 +2,7 @@ import time
 import cv2
 from sift_matcher import match_sift_with_boxes
 
-def sift_process_worker(image_queue, shared_images, pattern_path):
+def sift_process_worker(image_queue, shared_images, pattern_path, draw_keypoints_flag):
     sift = cv2.SIFT_create()
 
     while True:
@@ -17,5 +17,5 @@ def sift_process_worker(image_queue, shared_images, pattern_path):
         except:
             continue
 
-        processed = match_sift_with_boxes(pattern, frame)
+        processed = match_sift_with_boxes(pattern, frame, draw_keypoints_flag)
         shared_images['processed'] = processed

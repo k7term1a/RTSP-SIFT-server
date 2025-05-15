@@ -10,6 +10,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "static"
 PATTERN_PATH = os.path.join(UPLOAD_FOLDER, "pattern.png")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+draw_keypoints_flag = False  # 全域變數
 
 # 如果沒有 pattern.png，就產生一張白圖
 if not os.path.exists(PATTERN_PATH):
@@ -27,9 +28,9 @@ p_rtsp.daemon = True
 p_rtsp.start()
 
 # 啟動多個 SIFT Worker（可調整數量）
-NUM_WORKERS = 4
+NUM_WORKERS = 2
 for _ in range(NUM_WORKERS):
-    p = Process(target=sift_process_worker, args=(image_queue, shared_images, PATTERN_PATH))
+    p = Process(target=sift_process_worker, args=(image_queue, shared_images, PATTERN_PATH, draw_keypoints_flag))
     p.daemon = True
     p.start()
 
@@ -67,6 +68,13 @@ def stream(img_type):
 @app.route("/pattern")
 def pattern():
     return send_file(PATTERN_PATH, mimetype='image/png')
+
+@app.route('/toggle_keypoints', methods=['POST'])
+def toggle_keypoints():
+    global draw_keypoints_flag
+    data = request.get_json()
+    draw_keypoints_flag = data.get("show", False)
+    return {"status": "ok", "draw_keypoints": draw_keypoints_flag}
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)

@@ -32,6 +32,9 @@
         .upload-form {
             margin-top: 30px;
         }
+        .options {
+            margin-top: 20px;
+        }
     </style>
     <script>
         function refreshPattern() {
@@ -39,16 +42,35 @@
             document.getElementById('pattern').src = "/pattern?" + ts;
         }
         setInterval(refreshPattern, 1000);
+
+        function toggleKeypoints(checkbox) {
+            fetch("/toggle_keypoints", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ show: checkbox.checked })
+            });
+        }
     </script>
 </head>
 <body>
     <h1>RTSP 影像串流 + SIFT 特徵比對</h1>
+
     <div class="upload-form">
         <form action="/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept="image/*" required>
             <button type="submit">上傳 Pattern 圖</button>
         </form>
     </div>
+
+    <div class="options">
+        <label>
+            <input type="checkbox" onchange="toggleKeypoints(this)">
+            顯示 SIFT Keypoints
+        </label>
+    </div>
+
     <div class="image-container">
         <div class="image-box">
             <h3>原始影像</h3>
@@ -65,4 +87,3 @@
     </div>
 </body>
 </html>
-
