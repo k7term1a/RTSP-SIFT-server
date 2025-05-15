@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, send_file,
 import os
 import cv2
 import numpy as np
-from multiprocessing import Process, Manager, Queue
+from multiprocessing import Process, Manager, Queue, Value
 from rtsp_reader import rtsp_reader_process
 from sift_processor import sift_process_worker
 
@@ -10,7 +10,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "static"
 PATTERN_PATH = os.path.join(UPLOAD_FOLDER, "pattern.png")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-draw_keypoints_flag = Manager.Value('b', False)  # 'b' 表示 boolean
+draw_keypoints_flag = Value('b', False)  # 'b' 表示 boolean
 
 # 如果沒有 pattern.png，就產生一張白圖
 if not os.path.exists(PATTERN_PATH):
