@@ -17,5 +17,5 @@ def sift_process_worker(image_queue, shared_images, pattern_path, draw_keypoints
         except:
             continue
 
-        processed = match_sift_with_boxes(pattern, frame, draw_keypoints_flag)
+        processed = match_sift_with_boxes(pattern, frame, draw_keypoints_flag.value)
         shared_images['processed'] = processed
