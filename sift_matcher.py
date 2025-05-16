@@ -18,7 +18,7 @@ def match_sift_with_boxes(pattern_gray, frame_bgr, draw_keypoints=False):
     # 比對 + Ratio Test（更嚴格）
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(des1, des2, k=2)
-    good = [m for m, n in matches if m.distance < 0.6 * n.distance]
+    good = [m for m, n in matches if m.distance < 1.0 * n.distance]
 
     # 畫比對成功的 Keypoints（可選）
     if draw_keypoints and good:
@@ -41,6 +41,15 @@ def match_sift_with_boxes(pattern_gray, frame_bgr, draw_keypoints=False):
 
             # 進行 affine transform（不支援 perspectiveTransform）
             dst = cv2.transform(np.array([pts]), M)  # shape (1, 4, 2)
+
+            print()
+            print("=" * 32)
+            dst_coords = dst.reshape(-1, 2)
+            for i, (x, y) in enumerate(dst_coords):
+                print(f"Corner {i+1}: (x={x:.2f}, y={y:.2f})")
+            print("=" * 32)
+            print()
+            
 
             area = cv2.contourArea(dst)
             if area > 1000:
